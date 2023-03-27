@@ -32,8 +32,8 @@ ADD : '+' ;
 //NEWLINE : [\r\n]+ -> skip;
 NEWLINE : [\r\n]+ -> channel(HIDDEN);
 
-//WS : [ \t\n\r]+ -> skip ;
-WS : [ \t\n\r]+ -> channel(HIDDEN) ;
+//WS : [ \t]+ -> skip ;
+WS : [ \t]+ -> channel(HIDDEN) ;
 
 INT     : [0-9]+ ;
 
