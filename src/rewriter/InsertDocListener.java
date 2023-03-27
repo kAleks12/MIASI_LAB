@@ -18,18 +18,18 @@ public class InsertDocListener  extends JavaParserBaseListener{
         rewriter = new TokenStreamRewriter(tokens);
     }
 
-@Override
+    @Override
     public void exitClassBodyDeclaration(JavaParser.ClassBodyDeclarationContext ctx) {
         if (interesting == null) return;
 
         List<Token> spaces = tokStream.getHiddenTokensToLeft(ctx.start.getTokenIndex());
+        Token lastBefore = spaces.get(spaces.size()-1);
 
-//        ST docST = new ST("\n/**\n\t<name>\n*/");
-        ST docST = new ST(spaces.get(spaces.size()-1).getText()+"<line; separator = \"\n*  \">");
+        ST docST = new ST(lastBefore.getText()+"<line; separator = \"\n*  \">");
         docST.add("line","/**")
                 .add("line",interesting)
                 .add("line","\n*/");
-        rewriter.insertBefore(ctx.start.getTokenIndex()-1,docST.render());
+        rewriter.insertBefore(lastBefore,docST.render());
         interesting = null;
     }
 

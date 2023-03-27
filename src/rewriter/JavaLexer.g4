@@ -182,7 +182,7 @@ COLONCOLON:         '::';
 AT:                 '@';
 ELLIPSIS:           '...';
 // Whitespace and comments
-INDENT:             [\r\n][ \t]+     -> channel(HIDDEN);
+INDENT:             '\n'[ \t]+     -> channel(HIDDEN);
 NL:                 [\r\n\u000C]+?    -> channel(HIDDEN);
 WS:                 [ \t]+?           -> channel(HIDDEN);
 COMMENT:            '/*' .*? '*/'    -> channel(HIDDEN);
