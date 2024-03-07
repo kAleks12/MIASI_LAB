@@ -23,8 +23,8 @@ public class Start {
 
         ParseTree tree = par.prog();
 
-        CalculateVisitor v = new CalculateVisitor(inp,tokens);
-        Integer res = v.visit(tree);
+        GenericVisitor v = new GenericVisitor(inp,tokens);
+        Result res = v.visit(tree);
 //        System.out.printf("Wynik: %d\n", res);
     }
 }

@@ -23,6 +23,7 @@ public class CalculateVisitor extends firstBaseVisitor<Integer> {
         this.input = inp;
         this.tokStream = tok;
     }
+
     private String getText(ParserRuleContext ctx) {
         int a = ctx.start.getStartIndex();
         int b = ctx.stop.getStopIndex();
@@ -46,9 +47,9 @@ public class CalculateVisitor extends firstBaseVisitor<Integer> {
     public Integer visitPrint_stat(firstParser.Print_statContext ctx) {
         var st = ctx.expr();
         var result = visit(st);
-        System.out.printf("|%s=%d|\n", st.getText(), result); //nie drukuje ukrytych ani pominiętych spacji
-        System.out.printf("|%s=%d|\n", getText(st),  result); //drukuje wszystkie spacje
-        System.out.printf("|%s=%d|\n", tokStream.getText(st),  result); //drukuje spacje z ukrytego kanału, ale nie ->skip
+//        System.out.printf("|%s=%d|\n", st.getText(), result); //nie drukuje ukrytych ani pominiętych spacji
+//        System.out.printf("|%s=%d|\n", getText(st),  result); //drukuje wszystkie spacje
+        System.out.printf("(%s) = %d\n", tokStream.getText(st),  result); //drukuje spacje z ukrytego kanału, ale nie ->skip
         return result;
     }
 
@@ -64,26 +65,40 @@ public class CalculateVisitor extends firstBaseVisitor<Integer> {
 
     @Override
     public Integer visitBinOp(firstParser.BinOpContext ctx) {
-        Integer result=0;
+        int result=0;
         switch (ctx.op.getType()) {
-            case firstLexer.ADD:
-                result = visit(ctx.l) + visit(ctx.r);
-                break;
-            case firstLexer.SUB:
-                result = visit(ctx.l) - visit(ctx.r);
-                break;
-            case firstLexer.MUL:
-                result = visit(ctx.l) * visit(ctx.r);
-                break;
-            case firstLexer.DIV:
+            case firstLexer.ADD -> result = visit(ctx.l) + visit(ctx.r);
+            case firstLexer.SUB -> result = visit(ctx.l) - visit(ctx.r);
+            case firstLexer.MUL -> result = visit(ctx.l) * visit(ctx.r);
+            case firstLexer.DIV -> {
                 try {
                     result = visit(ctx.l) / visit(ctx.r);
                 } catch (Exception e) {
                     System.err.println("Div by zero");
                     throw new ArithmeticException();
                 }
+            }
         }
         return result;
+    }
+
+    @Override
+    public Integer visitLogOp(firstParser.LogOpContext ctx) {
+        return switch (ctx.op.getType()) {
+            case firstLexer.AND -> getInteger(getBool(visit(ctx.l)) && getBool(visit(ctx.r)));
+            case firstLexer.OR -> getInteger(getBool(visit(ctx.l)) || getBool(visit(ctx.r)));
+            case firstLexer.NOT -> getInteger(!getBool(visit(ctx.r)));
+            case firstLexer.EQ -> getInteger(visit(ctx.l).equals(visit(ctx.r)));
+            case firstLexer.NEQ -> getInteger(!visit(ctx.l).equals(visit(ctx.r)));
+            default -> 0;
+        };
+    }
+    public int getInteger(boolean val) {
+        return val ? 1:0;
+    }
+
+    public boolean getBool(Integer val) {
+        return val > 0;
     }
 
 }

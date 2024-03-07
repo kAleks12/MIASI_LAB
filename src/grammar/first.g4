@@ -14,6 +14,11 @@ block : stat #block_single
 expr:
         l=expr op=(MUL|DIV) r=expr #binOp
     |	l=expr op=(ADD|SUB) r=expr #binOp
+    |   l=expr op=(EQ|NEQ) r=expr #logOp
+    |   l=expr op=AND r=expr #logOp
+    |   l=expr op=OR r=expr #logOp
+    |   op=NOT r=expr #logOp
+    |   DOUBLE #double_tok
     |	INT #int_tok
     |	'(' expr ')' #pars
     | <assoc=right> ID '=' expr # assign
@@ -29,6 +34,16 @@ SUB : '-' ;
 
 ADD : '+' ;
 
+EQ :  '==';
+
+NEQ: '!=';
+
+AND: '&&';
+
+OR: '||';
+
+NOT: '!';
+
 //NEWLINE : [\r\n]+ -> skip;
 NEWLINE : [\r\n]+ -> channel(HIDDEN);
 
@@ -36,6 +51,8 @@ NEWLINE : [\r\n]+ -> channel(HIDDEN);
 WS : [ \t]+ -> channel(HIDDEN) ;
 
 INT     : [0-9]+ ;
+
+DOUBLE: [0-9].[0-9]+;
 
 
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
