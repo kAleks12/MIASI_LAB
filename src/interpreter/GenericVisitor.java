@@ -1,5 +1,6 @@
 package interpreter;
 
+import SymbolTable.LocalSymbols;
 import grammar.*;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -9,6 +10,7 @@ import org.antlr.v4.runtime.misc.Interval;
 public class GenericVisitor extends firstBaseVisitor<Result> {
     private TokenStream tokStream = null;
     private CharStream input = null;
+    private LocalSymbols<Result> symbols = new LocalSymbols<>();
 
     public GenericVisitor(CharStream inp) {
         super();
@@ -34,6 +36,16 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
     }
 
     @Override
+    public Result visitBlock_real(firstParser.Block_realContext ctx) {
+        symbols.enterScope();
+        for(var stat: ctx.block()) {
+            visit(stat);
+        }
+        symbols.leaveScope();
+        return null;
+    }
+
+    @Override
     public Result visitIf_stat(firstParser.If_statContext ctx) {
         Result ifResult = null;
         if (visit(ctx.cond).getAsBoolean()) {
@@ -43,6 +55,15 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
                 ifResult = visit(ctx.else_);
         }
         return ifResult;
+    }
+
+    @Override
+    public Result visitWhile_stat(firstParser.While_statContext ctx) {
+        Result whileResult = null;
+        while (visit(ctx.cond).getAsBoolean()) {
+            visit(ctx.then);
+        }
+        return null;
     }
 
     @Override
@@ -67,6 +88,12 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
     }
 
     @Override
+    public Result visitBool_tok(firstParser.Bool_tokContext ctx) {
+        return new Result(ctx.BOOL().getText(), Type.BOOLEAN);
+    }
+
+
+    @Override
     public Result visitDouble_tok(firstParser.Double_tokContext ctx) {
         return new Result(ctx.DOUBLE().getText(), Type.DOUBLE);
     }
@@ -75,6 +102,7 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
     public Result visitPars(firstParser.ParsContext ctx) {
         return visit(ctx.expr());
     }
+
 
     @Override
     public Result visitBinOp(firstParser.BinOpContext ctx) {
@@ -140,9 +168,34 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
             case firstLexer.NOT -> !visit(ctx.r).getAsBoolean();
             case firstLexer.EQ -> visit(ctx.l).getAsDouble().equals(visit(ctx.r).getAsDouble());
             case firstLexer.NEQ -> !visit(ctx.l).getAsDouble().equals(visit(ctx.r).getAsDouble());
+            case firstLexer.GT -> visit(ctx.l).getAsDouble() > (visit(ctx.r).getAsDouble());
+            case firstLexer.LT -> visit(ctx.l).getAsDouble() < (visit(ctx.r).getAsDouble());
             default -> false;
         };
         return new Result(rawValue.toString(), Type.BOOLEAN);
+    }
+
+    @Override
+    public Result visitRead(firstParser.ReadContext ctx) {
+        String name = ctx.ID().getText();
+        if (symbols.hasSymbolDepth(name) != null) {
+            return symbols.getSymbol(name);
+        }
+        throw new RuntimeException("No global variable named: " + name);
+    }
+
+    @Override
+    public Result visitAssign(firstParser.AssignContext ctx) {
+        String name = ctx.ID().getText();
+        Result value = visit(ctx.expr());
+        if (symbols.hasSymbol(name)) {
+            symbols.setSymbol(name, value);
+        }
+        else {
+            symbols.newSymbol(name);
+            symbols.setSymbol(name, value);
+        }
+        return null;
     }
 
     private Type getBinOpType(Result part1, Result part2) {
@@ -160,4 +213,5 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
             case ERROR -> Type.ERROR;
         };
     }
+
 }
