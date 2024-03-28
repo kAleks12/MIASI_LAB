@@ -1,5 +1,6 @@
 package interpreter;
 
+import SymbolTable.LocalSymbols;
 import grammar.*;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -9,6 +10,7 @@ import org.antlr.v4.runtime.misc.Interval;
 public class GenericVisitor extends firstBaseVisitor<Result> {
     private TokenStream tokStream = null;
     private CharStream input = null;
+    private final LocalSymbols<Result> symbols = new LocalSymbols<>();
 
     public GenericVisitor(CharStream inp) {
         super();
@@ -46,6 +48,14 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
     }
 
     @Override
+    public Result visitWhile_stat(firstParser.While_statContext ctx) {
+        while (visit(ctx.cond).getAsBoolean()) {
+            visit(ctx.then);
+        }
+        return null;
+    }
+
+    @Override
     public Result visitPrint_stat(firstParser.Print_statContext ctx) {
         var st = ctx.expr();
         var result = visit(st);
@@ -64,6 +74,11 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
     @Override
     public Result visitInt_tok(firstParser.Int_tokContext ctx) {
         return new Result(ctx.INT().getText(), Type.INTEGER);
+    }
+
+    @Override
+    public Result visitBool_tok(firstParser.Bool_tokContext ctx) {
+        return new Result(ctx.BOOL().getText(), Type.BOOLEAN);
     }
 
     @Override
@@ -140,9 +155,56 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
             case firstLexer.NOT -> !visit(ctx.r).getAsBoolean();
             case firstLexer.EQ -> visit(ctx.l).getAsDouble().equals(visit(ctx.r).getAsDouble());
             case firstLexer.NEQ -> !visit(ctx.l).getAsDouble().equals(visit(ctx.r).getAsDouble());
+            case firstLexer.GT -> visit(ctx.l).getAsDouble() > visit(ctx.r).getAsDouble();
+            case firstLexer.LT -> visit(ctx.l).getAsDouble() < visit(ctx.r).getAsDouble();
             default -> false;
         };
         return new Result(rawValue.toString(), Type.BOOLEAN);
+    }
+
+    @Override
+    public Result visitAssignExisting(firstParser.AssignExistingContext ctx) {
+        String name = ctx.ID().getText();
+        if(symbols.hasSymbolDepth(name) != null) {
+            symbols.setSymbol(name, visit(ctx.expr()));
+        } else {
+            return new Result("Variable " + name + " not declared", Type.ERROR);
+        }
+        return null;
+    }
+
+    @Override
+    public Result visitAssignNew(firstParser.AssignNewContext ctx) {
+        String name = ctx.ID().getText();
+        if(symbols.hasSymbol(name)) {
+            return new Result("Variable " + name + " already declared in scope", Type.ERROR);
+
+        } else {
+            symbols.newSymbol(name);
+            symbols.setSymbol(name, visit(ctx.expr()));
+        }
+        return null;
+    }
+
+    @Override
+    public Result visitRead(firstParser.ReadContext ctx) {
+        String name = ctx.ID().getText();
+        if (symbols.hasSymbolDepth(name) != null) {
+            return symbols.getSymbol(name);
+        }
+        else {
+            return new Result("Variable " + name + " not declared", Type.ERROR);
+        }
+    }
+
+    @Override
+    public Result visitBlock_real(firstParser.Block_realContext ctx) {
+        symbols.enterScope();
+        for (var st : ctx.block()) {
+            visit(st);
+        }
+        symbols.leaveScope();
+        return null;
     }
 
     private Type getBinOpType(Result part1, Result part2) {
