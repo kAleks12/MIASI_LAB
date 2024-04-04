@@ -20,6 +20,31 @@ dodaj(p1,p2) ::= <<
 ADD A,B
 >>
 
+odejmij(p1,p2) ::= <<
+<twoop(p1,p2)>
+SUB A,B
+>>
+
+mnoz(p1,p2) ::= <<
+<twoop(p1,p2)>
+MUL A,B
+>>
+
+podziel(p1,p2) ::= <<
+<twoop(p1,p2)>
+DIV A,B
+>>
+
 dek(n) ::= <<
 DD <n>
+>>
+
+warunek(cond, counter, then, _else) ::= <<
+<cond>
+JE label_else_<counter>
+<then>
+JMP label_end_if_<counter>
+label_else_<counter>:
+<_else>
+label_end_if_<counter>:
 >>
