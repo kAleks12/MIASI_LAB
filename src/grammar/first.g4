@@ -1,6 +1,9 @@
 grammar first;
 
-prog:	stat* EOF;
+prog:	(stat|def)* EOF;
+
+def: 'def ' name=ID '(' par+=ID (',' par+=ID)* ')' block;
+
 
 stat: expr #expr_stat
     | IF_kw '(' cond=expr ')' then=block  ('else' else=block)? #if_stat
@@ -22,10 +25,15 @@ expr:
     |   DOUBLE #double_tok
     |	INT #int_tok
     |   BOOL #bool_tok
+    |   func #func_call
     |	'(' expr ')' #pars
     | <assoc=right> ID '=' expr # assign
     |   ID #read
     ;
+
+
+func : ID '(' expr (',' expr)* ')' ;
+
 
 IF_kw : 'if' ;
 
