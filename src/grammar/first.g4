@@ -1,6 +1,9 @@
 grammar first;
 
-prog:    stat* EOF ;
+prog:	(stat|def)* EOF;
+
+def: 'def ' name=ID '(' par+=ID (',' par+=ID)* ')' block;
+
 
 stat: expr #expr_stat
     | IF_kw '(' cond=expr ')' then=block  ('else' else=block)? #if_stat
@@ -14,24 +17,30 @@ block : stat #block_single
 
 expr:
         l=expr op=(MUL|DIV) r=expr #binOp
-    |    l=expr op=(ADD|SUB) r=expr #binOp
-    |   l=expr op=(EQ|NEQ|GT|LT) r=expr #logOp
+    |	l=expr op=(ADD|SUB) r=expr #binOp
+    |   l=expr op=(EQ|NEQ|LT|GT) r=expr #logOp
     |   l=expr op=AND r=expr #logOp
     |   l=expr op=OR r=expr #logOp
     |   op=NOT r=expr #logOp
-    |   TABLE #table_tok
     |   DOUBLE #double_tok
-    |    INT #int_tok
+    |   INT #int_tok
     |   BOOL #bool_tok
+    |   func #func_call
     |    '(' expr ')' #pars
     | <assoc=right> 'let' ID '=' expr #assignNew
     | <assoc=right>  ID '=' expr #assignExisting
     |   ID #read
     ;
 
+
+func : ID '(' expr (',' expr)* ')' ;
+
+
 IF_kw : 'if' ;
 
-WHILE_kw : 'while' ;
+BOOL: 'true'|'false';
+
+WHILE_kw: 'while';
 
 DIV : '/' ;
 
@@ -43,18 +52,17 @@ ADD : '+' ;
 
 EQ : '==' ;
 
-NEQ : '!=' ;
+GT : '>';
+
+LT : '<';
+
+NEQ: '!=';
 
 AND : '&&' ;
 
 OR : '||' ;
 
 NOT : '!' ;
-
-GT : '>' ;
-
-LT : '<' ;
-
 
 //NEWLINE : [\r\n]+ -> skip;
 NEWLINE : [\r\n]+ -> channel(HIDDEN);
@@ -64,11 +72,7 @@ WS : [ \t]+ -> channel(HIDDEN) ;
 
 INT     : [0-9]+ ;
 
-DOUBLE  : [0-9]+.[0-9]+ ;
-
-BOOL : 'true'|'false' ;
-
-TABLE: '[' (BOOL|INT|DOUBLE)  (', ' (BOOL|INT|DOUBLE))* ']';
+DOUBLE: [0-9]+[.][0-9]+;
 
 
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
