@@ -10,7 +10,7 @@ import org.antlr.v4.runtime.misc.Interval;
 public class GenericVisitor extends firstBaseVisitor<Result> {
     private TokenStream tokStream = null;
     private CharStream input = null;
-    private LocalSymbols<Result> symbols = new LocalSymbols<>();
+    private final LocalSymbols<Result> symbols = new LocalSymbols<>();
 
     public GenericVisitor(CharStream inp) {
         super();
@@ -36,16 +36,6 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
     }
 
     @Override
-    public Result visitBlock_real(firstParser.Block_realContext ctx) {
-        symbols.enterScope();
-        for(var stat: ctx.block()) {
-            visit(stat);
-        }
-        symbols.leaveScope();
-        return null;
-    }
-
-    @Override
     public Result visitIf_stat(firstParser.If_statContext ctx) {
         Result ifResult = null;
         if (visit(ctx.cond).getAsBoolean()) {
@@ -59,7 +49,6 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
 
     @Override
     public Result visitWhile_stat(firstParser.While_statContext ctx) {
-        Result whileResult = null;
         while (visit(ctx.cond).getAsBoolean()) {
             visit(ctx.then);
         }
@@ -92,7 +81,6 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
         return new Result(ctx.BOOL().getText(), Type.BOOLEAN);
     }
 
-
     @Override
     public Result visitDouble_tok(firstParser.Double_tokContext ctx) {
         return new Result(ctx.DOUBLE().getText(), Type.DOUBLE);
@@ -102,7 +90,6 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
     public Result visitPars(firstParser.ParsContext ctx) {
         return visit(ctx.expr());
     }
-
 
     @Override
     public Result visitBinOp(firstParser.BinOpContext ctx) {
@@ -168,11 +155,35 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
             case firstLexer.NOT -> !visit(ctx.r).getAsBoolean();
             case firstLexer.EQ -> visit(ctx.l).getAsDouble().equals(visit(ctx.r).getAsDouble());
             case firstLexer.NEQ -> !visit(ctx.l).getAsDouble().equals(visit(ctx.r).getAsDouble());
-            case firstLexer.GT -> visit(ctx.l).getAsDouble() > (visit(ctx.r).getAsDouble());
-            case firstLexer.LT -> visit(ctx.l).getAsDouble() < (visit(ctx.r).getAsDouble());
+            case firstLexer.GT -> visit(ctx.l).getAsDouble() > visit(ctx.r).getAsDouble();
+            case firstLexer.LT -> visit(ctx.l).getAsDouble() < visit(ctx.r).getAsDouble();
             default -> false;
         };
         return new Result(rawValue.toString(), Type.BOOLEAN);
+    }
+
+    @Override
+    public Result visitAssignExisting(firstParser.AssignExistingContext ctx) {
+        String name = ctx.ID().getText();
+        if(symbols.hasSymbolDepth(name) != null) {
+            symbols.setSymbol(name, visit(ctx.expr()));
+        } else {
+            return new Result("Variable " + name + " not declared", Type.ERROR);
+        }
+        return null;
+    }
+
+    @Override
+    public Result visitAssignNew(firstParser.AssignNewContext ctx) {
+        String name = ctx.ID().getText();
+        if(symbols.hasSymbol(name)) {
+            return new Result("Variable " + name + " already declared in scope", Type.ERROR);
+
+        } else {
+            symbols.newSymbol(name);
+            symbols.setSymbol(name, visit(ctx.expr()));
+        }
+        return null;
     }
 
     @Override
@@ -181,20 +192,18 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
         if (symbols.hasSymbolDepth(name) != null) {
             return symbols.getSymbol(name);
         }
-        throw new RuntimeException("No global variable named: " + name);
+        else {
+            return new Result("Variable " + name + " not declared", Type.ERROR);
+        }
     }
 
     @Override
-    public Result visitAssign(firstParser.AssignContext ctx) {
-        String name = ctx.ID().getText();
-        Result value = visit(ctx.expr());
-        if (symbols.hasSymbol(name)) {
-            symbols.setSymbol(name, value);
+    public Result visitBlock_real(firstParser.Block_realContext ctx) {
+        symbols.enterScope();
+        for (var st : ctx.block()) {
+            visit(st);
         }
-        else {
-            symbols.newSymbol(name);
-            symbols.setSymbol(name, value);
-        }
+        symbols.leaveScope();
         return null;
     }
 
@@ -213,5 +222,4 @@ public class GenericVisitor extends firstBaseVisitor<Result> {
             case ERROR -> Type.ERROR;
         };
     }
-
 }

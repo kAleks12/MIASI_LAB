@@ -23,11 +23,12 @@ expr:
     |   l=expr op=OR r=expr #logOp
     |   op=NOT r=expr #logOp
     |   DOUBLE #double_tok
-    |	INT #int_tok
+    |   INT #int_tok
     |   BOOL #bool_tok
     |   func #func_call
-    |	'(' expr ')' #pars
-    | <assoc=right> ID '=' expr # assign
+    |    '(' expr ')' #pars
+    | <assoc=right> 'let' ID '=' expr #assignNew
+    | <assoc=right>  ID '=' expr #assignExisting
     |   ID #read
     ;
 
@@ -49,7 +50,7 @@ SUB : '-' ;
 
 ADD : '+' ;
 
-EQ :  '==';
+EQ : '==' ;
 
 GT : '>';
 
@@ -57,11 +58,11 @@ LT : '<';
 
 NEQ: '!=';
 
-AND: '&&';
+AND : '&&' ;
 
-OR: '||';
+OR : '||' ;
 
-NOT: '!';
+NOT : '!' ;
 
 //NEWLINE : [\r\n]+ -> skip;
 NEWLINE : [\r\n]+ -> channel(HIDDEN);
